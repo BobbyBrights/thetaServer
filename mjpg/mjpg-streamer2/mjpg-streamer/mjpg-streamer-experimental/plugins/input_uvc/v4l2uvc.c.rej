@@ -1,0 +1,11 @@
+--- plugins/input_uvc/v4l2uvc.c (working copy)
++++ plugins/input_uvc/v4l2uvc.c (revision 174)
+@@ -450,8 +450,6 @@
+         */
+ 
+         memcpy(vd->tmpbuffer, vd->mem[vd->buf.index], vd->buf.bytesused);
+-        vd->tmpbytesused = vd->buf.bytesused;
+-        vd->tmptimestamp = vd->buf.timestamp;
+ 
+         if(debug)
+             fprintf(stderr, "bytes in used %d \n", vd->buf.bytesused);

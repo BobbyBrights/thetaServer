@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+
+cd /var/www/html/application/
+
+./mjpg.bash &
+
+sleep 2
+
+ipcrm --all=sem
+ipcrm --all=shm
+./proxy.qt/proxy &
+
+wait
+

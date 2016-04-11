@@ -1,0 +1,18 @@
+@charset "UTF-8";
+/* CSS Document */
+
+@font-face {
+	font-family: 'QuickTypeCondensed';
+	src: url('quicktype_condensed-webfont.eot');
+	src: local('☺'), url('quicktype_condensed-webfont.woff') format('woff'), url('quicktype_condensed-webfont.ttf') format('truetype'), url('quicktype_condensed-webfont.svg#webfontHKYwtUmE') format('svg');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'QuickTypeCondensed';
+	src: url('quicktype_condensed_bold-webfont.eot');
+	src: local('☺'), url('quicktype_condensed_bold-webfont.woff') format('woff'), url('quicktype_condensed_bold-webfont.ttf') format('truetype'), url('quicktype_condensed_bold-webfont.svg#webfontnZj9brGD') format('svg');
+	font-weight: bold;
+	font-style: normal;
+}

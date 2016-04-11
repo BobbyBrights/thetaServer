@@ -1,0 +1,7 @@
+
+
+X	Add null locator above geometry for when in deviceOrientation mode, so geo can rotate.
+X	Add zoom control to deviceOrientation mode
+X	Detect when texture is no longer changing, and reconnect.
+
+

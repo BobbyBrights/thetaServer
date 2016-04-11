@@ -1,0 +1,446 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MPV-VR</title>
+<style>
+*{
+	margin:0;
+	padding:0;
+}
+html {
+	font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;
+}
+body {
+	background: #222222 none repeat scroll 0 0;
+	overflow: hidden;
+}
+#container{
+	/*position: relative;*/
+	z-index: 0;
+}
+#mode {
+	position: absolute;
+	cursor: pointer;
+	z-index: 1;
+	left: 20px;
+	bottom: 72px;
+	bottom: 20px;			/* ! */
+	width: 32px;
+	height: 32px;
+}
+#question {
+	position: absolute;
+	cursor: pointer;
+	z-index: 1;
+	left: 20px;
+	bottom: 20px;
+	width: 32px;
+	height: 32px;
+	display: none;			/* ! */
+}
+#alert {
+	position: absolute;
+	padding: 0;
+	margin: -88px 0 0 -120px;
+	left: 50%;
+	top: 50%;
+	width: 240px;
+	height: 176px;
+	border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+	z-index: -1;
+	opacity: 0;
+	display: none;			/* ! */
+}
+#support {
+	position: absolute;
+	padding: 0;
+	margin: -151px 0 0 -130px;
+	left: 50%;
+	top: 50%;
+	width: 260px;
+	height: 303px;
+	border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+	z-index: -1;
+	opacity: 0;
+	display: none;			/* ! */
+}
+.grab {
+	cursor:grab;
+	cursor:-moz-grab;
+	cursor:-webkit-grab;
+}
+.grabbing {
+	cursor:grabbing;
+	cursor:-moz-grabbing;
+	cursor:-webkit-grabbing;
+}
+#stats {
+	position: absolute;
+	top: 0;
+	right: 6px;
+	cursor: default !important;
+}
+#stats #fps {
+	background: transparent !important;
+	text-align: right !important;
+}
+#stats #fps #fpsText {
+	color: #fff !important;
+}
+#stats #fps #fpsGraph {
+	display: none;
+}
+#sysinfo {
+	font-family: Helvetica, Arial, sans-serif;
+	font-size: 10px;
+	font-weight: bold;
+	line-height: 12px;
+	text-align: right;
+	color: #fff;
+	opacity: 0.9;
+	position: absolute;
+	top: 14px;
+	right: 6px;
+	cursor: default;
+}
+
+</style>
+<!--script src="https://code.jquery.com/jquery-3.0.0-beta1.min.js"></script-->
+<script src='js/jquery.js'></script>
+<script src="js/three.min.js"></script>
+<script src="js/DeviceOrientationControls.js"></script>
+<script src="js/TrackballControls.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/OBJLoader.js"></script>
+<script src="js/stats.min.js"></script>
+<script src="js/system.min.js"></script>
+<script>
+$(function() {
+	var cam_mode = 1;
+	var toggle = true;
+	var stats;
+	
+	var renderer, scene, node, mesh, geometry, material, texture;
+	var sensor_cam, orbit_cam, globe_cam;
+	var sensor_ctl, orbit_ctl, globe_ctl, mesh_ctl;
+
+	var loader = new THREE.TextureLoader();
+	//loader.crossOrigin = '';
+	//THREE.ImageUtils.crossOrigin = '';
+	var cnv = document.createElement('canvas');
+	cnv.width = 2; cnv.height = 2;
+	var tex = loader.load(//"http://dz.plala.jp:49152/?action=stream",
+		//"http://192.168.25.1/application/proxy.php",
+		//"http://192.168.1.123/application/proxy.php",
+		//"https://192.168.1.123/application/proxy.php",
+		//location.origin+"/application/proxy.php",
+		location.origin+"/application/proxy2.php",
+		//"http://192.168.25.1:8090/?action=stream",
+		function (texture) {
+			texture.minFilter = THREE.LinearFilter;
+			material = new THREE.MeshBasicMaterial({map: texture});
+			init();
+		},
+		function() {					//progress
+			console.log("Texture progress...");
+		},
+		function() {					//error
+			console.log("Texture error...");
+		}
+	);
+	
+	//初期化
+	function init() {
+		windowWidth = $(window).innerWidth(), windowHeight = $(window).innerHeight();
+		
+		renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setSize(windowWidth, windowHeight);
+		$("#container").append(renderer.domElement);
+		
+		sensor_cam = new THREE.PerspectiveCamera(60, windowWidth / windowHeight, .01, 1000);
+		sensor_cam.position.set(0, 0, .1);
+		sensor_ctl = new THREE.DeviceOrientationControls(sensor_cam);
+		
+		orbit_cam = new THREE.PerspectiveCamera(60, windowWidth / windowHeight, .01, 1000);
+		orbit_cam.position.set(0, 0, .1);
+		orbit_ctl = new THREE.OrbitControls(orbit_cam, renderer.domElement);
+		orbit_ctl.enablePan = false;
+		orbit_ctl.enableZoom = true;
+		orbit_ctl.autoRotate = false;
+	//	orbit_ctl.enabled = false;
+
+	/*	globe_cam = new THREE.PerspectiveCamera(70, windowWidth / windowHeight, 1, 2000);
+		globe_cam.position.set(0, 0, 1000);
+		globe_ctl = new THREE.OrbitControls(globe_cam, renderer.domElement);
+		globe_ctl.userPan = false;
+		globe_ctl.userZoom = false;
+		globe_ctl.autoRotate = false;
+		globe_ctl.minDistance = 1000;
+		globe_ctl.maxDistance = 1000;
+	*/	
+		scene = new THREE.Scene();
+	
+		//mesh = new THREE.Mesh(new THREE.SphereGeometry(500, 60, 40), material);
+		//mesh.scale.x = -1;
+
+		//scene.add(mesh);
+
+		/*
+		var onProgress = function ( xhr ) {
+			if ( xhr.lengthComputable ) {
+				var percentComplete = xhr.loaded / xhr.total * 100;
+				console.log( Math.round(percentComplete, 2) + '% downloaded' );
+			}
+		};
+
+		var onError = function ( xhr ) {
+			console.log("loader error!");
+		};
+		*/
+
+		/*
+		var manager = new THREE.LoadingManager();
+		manager.onProgress = function ( item, loaded, total ) {
+			console.log( item, loaded, total );
+
+			if (loaded == total)
+				animate();
+		};
+
+		var loader = new THREE.OBJLoader( manager );
+		//loader.load( 'obj/male02/male02.obj', function ( object ) {
+		loader.load( 'mesh/theta360.obj', function ( object ) {
+			object.traverse( function ( child ) {
+				if ( child instanceof THREE.Mesh ) {
+					//child.material.map = texture;
+					child.material = material;
+					mesh = child;
+					mesh.frustumCulled = false;
+					mesh.position.z = -.01;		//needs to be offset to rotate...
+
+			//		mesh_ctl = new THREE.OrbitControls(mesh);//, renderer.domElement);
+			//		mesh_ctl.enableRotate = false;
+			//		mesh_ctl.enablePan = false;
+			//		mesh_ctl.enableZoom = false;
+			//		mesh_ctl.autoRotate = false;
+				}
+			} );
+			//object.position.y = - 95;
+			scene.add( object );
+		}, onProgress, onError );
+		*/
+
+		geometry = new THREE.SphereGeometry(100, 64, 64, 0);
+		geometry.scale(-1, 1, 1);
+
+		var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
+		for ( i = 0; i < faceVertexUvs.length; i++ ) {
+			var uvs = faceVertexUvs[ i ];
+			var face = geometry.faces[ i ];
+			for ( var j = 0; j < 3; j ++ ) {
+				var x = face.vertexNormals[ j ].x;
+				var y = face.vertexNormals[ j ].y;
+				var z = face.vertexNormals[ j ].z;
+
+				if (i < faceVertexUvs.length / 2) {
+					var correction = (x == 0 && z == 0) ? 1 : (Math.acos(y) / Math.sqrt(x * x + z * z)) * (2 / Math.PI);
+					// uvs[ j ].x = x * (423 / 1920) * correction + (480 / 1920);
+					// uvs[ j ].y = z * (423 / 1080) * correction + (600 / 1080);
+					uvs[ j ].x = x * (428 / 1920) * correction + (480 / 1920);
+					uvs[ j ].y = z * (428 / 1080) * correction + (600 / 1080);
+				} else {
+					var correction = ( x == 0 && z == 0) ? 1 : (Math.acos(-y) / Math.sqrt(x * x + z * z)) * (2 / Math.PI);
+					// uvs[ j ].x = -1 * x * (423 / 1920) * correction + (1440 / 1920);
+					// uvs[ j ].y = z * (423 / 1080) * correction + (600 / 1080);
+					uvs[ j ].x = -1 * x * (428 / 1920) * correction + (1440 / 1920);
+					uvs[ j ].y = z * (428 / 1080) * correction + (600 / 1080);
+				}
+			}
+		}
+
+		geometry.rotateZ(-Math.PI / 2);
+		geometry.rotateY(-Math.PI / 2);
+
+		mesh = new THREE.Mesh( geometry, material );
+		mesh.material = material;
+
+		node = new THREE.Object3D();
+		node.add( mesh );
+		scene.add( node );
+
+		node.position.z = -.01;
+	//	node_ctl = new THREE.TrackballControls(mesh);//, renderer.domElement);
+		node_ctl = new THREE.OrbitControls(node);
+	//	node_ctl.enableRotate = false;
+		node_ctl.enableRotate = true;
+		node_ctl.enablePan = false;
+		node_ctl.enableZoom = false;
+		node_ctl.autoRotate = false;
+		node_ctl.minPolarAngle = Math.PI/2;
+		node_ctl.maxPolarAngle = Math.PI/2;
+		node_ctl.enabled = false;
+
+		
+		stats = new Stats();
+		$("#container").append(stats.domElement);
+		
+		$("#sysinfo").html([
+			'Resolution: 1280x720',
+			'Browser: ' + System.browser,
+			'OS: ' + System.os,
+		//	'Canvas: ' + System.support.canvas,
+		//	'Local storage: ' + System.support.localStorage,
+		//	'File API: ' + System.support.file,
+		//	'FileSystem API: ' + System.support.fileSystem,
+		//	'RequestAnimationFrame: ' + System.support.requestAnimationFrame,
+		//	'Session storage: ' + System.support.sessionStorage,
+		//	'SVG: ' + System.support.svg,
+			'WebGL: ' + System.support.webgl,
+		//	'Worker: ' + System.support.worker
+		].join( '<br />' ));
+
+		$("#sysinfo").hide();
+
+		//only after mesh is loaded, please
+		animate();
+	};
+
+	var counter=0;	
+	//レンダリング
+	function animate() {
+		requestAnimationFrame(animate);
+
+		try
+		{
+			if (mesh && mesh.material)
+			if (counter++ % 2)
+			{	mesh.material.map.needsUpdate = true;
+
+			/*	cnv.getContext('2d').drawImage(tex.image, 0, 0, 2, 2);
+				var pixelData = cnv.getContext('2d').getImageData(1, 1, 1, 1).data;
+				var v = pixelData[0] * pixelData[1] * pixelData[2];
+				console.log(v);
+			*/
+			}
+
+			switch (cam_mode){
+				case 1:
+					sensor_ctl.update();
+					node_ctl.update();
+					renderer.render(scene, sensor_cam);
+					break;
+				case 2:
+					orbit_ctl.update();
+					node_ctl.update();
+					renderer.render(scene, orbit_cam);
+					break;
+			//	case 3:
+			//		globe_ctl.update();
+			//		renderer.render(scene, globe_cam);
+			//		break;
+			}
+		}
+		catch (e)
+		{
+			console.log("Render Exception!");
+			console.log(e);
+			console.log(tex.image);
+		}
+		stats.update();
+	};
+	
+	//リサイズ
+	$(window).resize(function() {
+		windowWidth = $(window).innerWidth(),windowHeight = $(window).innerHeight();
+		
+		sensor_cam.aspect = windowWidth / windowHeight;
+		sensor_cam.updateProjectionMatrix();
+		
+		orbit_cam.aspect = windowWidth / windowHeight;
+		orbit_cam.updateProjectionMatrix();
+		
+		//globe_cam.aspect = windowWidth / windowHeight;
+		//globe_cam.updateProjectionMatrix();
+		
+		renderer.setSize(windowWidth, windowHeight);
+	});
+	
+	//モードボタン
+	$("#mode").click(function() {
+console.log("CAM MODE: "+cam_mode);
+		switch (cam_mode) {
+			case 1:
+				$(this).attr("src",$(this).attr("src").replace("_sensor", "_orbit"));
+				cam_mode = 2;
+				node_ctl.enabled = false;
+		//		orbit_ctl.minAzimuthAngle = -Infinity;
+		//		orbit_ctl.maxAzimuthAngle = Infinity;
+				break;
+			case 2:
+		//		$(this).attr("src",$(this).attr("src").replace("_orbit", "_globe"));
+		//		cam_mode = 3;
+				$(this).attr("src",$(this).attr("src").replace("_orbit", "_sensor"));
+		//		mesh_ctl.enableRotate = false;
+				cam_mode = 1;
+				node_ctl.enabled = true;
+		//		orbit_ctl.minAzimuthAngle = 0;
+		//		orbit_ctl.maxAzimuthAngle = 0;
+				break;
+		//	case 3:
+		//		$(this).attr("src",$(this).attr("src").replace("_globe", "_sensor"));
+		//		cam_mode = 1;
+		//		break;
+		}
+	});
+	
+	//ハテナボタン
+	$("#question").click(function() {
+		if (toggle) {
+			$("#question").css("cursor", "default");
+			$("#alert").css("z-index", "1");
+			$("#alert").css("opacity", "1.0");
+			$("#alert").css("cursor", "pointer");
+			toggle = false;
+		}
+	});
+	$("#alert").click(function() {
+		if (!toggle) {
+			$("#alert").css("z-index", "-1");
+			$("#alert").css("opacity", "0");
+			$("#alert").css("cursor", "default");
+			$("#question").css("cursor", "pointer");
+			toggle = true;
+		}
+	});
+	
+	//マウスアイコン
+	$("#container").mousedown(function() {
+		$("#container").addClass("grabbing");
+		$("#container").removeClass("grab");
+	});
+	$("#container").mouseup(function() {
+		$("#container").addClass("grab");
+		$("#container").removeClass("grabbing");
+	});
+});
+</script>
+</head>
+<body>
+<div id="container" class="grab">
+	<img id="support" src="images/support.png">
+	<img id="alert" src="images/alert.png">
+	<img id="mode" src="images/mode_sensor.png">
+	<img id="question" src="images/question.png">
+	<div id="sysinfo"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MPV-VR</title>
+<style>
+*{
+	margin:0;
+	padding:0;
+}
+html {
+	font-family: 'Lucida Grande', 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif;
+}
+body {
+	background: #222222 none repeat scroll 0 0;
+	overflow: hidden;
+}
+#container{
+	/*position: relative;*/
+	z-index: 0;
+}
+#mode {
+	position: absolute;
+	cursor: pointer;
+	z-index: 1;
+	left: 20px;
+	bottom: 72px;
+	width: 32px;
+	height: 32px;
+}
+#question {
+	position: absolute;
+	cursor: pointer;
+	z-index: 1;
+	left: 20px;
+	bottom: 20px;
+	width: 32px;
+	height: 32px;
+}
+#alert {
+	position: absolute;
+	padding: 0;
+	margin: -88px 0 0 -120px;
+	left: 50%;
+	top: 50%;
+	width: 240px;
+	height: 176px;
+	border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+	z-index: -1;
+	opacity: 0;
+}
+#support {
+	position: absolute;
+	padding: 0;
+	margin: -151px 0 0 -130px;
+	left: 50%;
+	top: 50%;
+	width: 260px;
+	height: 303px;
+	border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+	z-index: -1;
+	opacity: 0;
+}
+.grab {
+	cursor:grab;
+	cursor:-moz-grab;
+	cursor:-webkit-grab;
+}
+.grabbing {
+	cursor:grabbing;
+	cursor:-moz-grabbing;
+	cursor:-webkit-grabbing;
+}
+#stats {
+	position: absolute;
+	top: 0;
+	right: 6px;
+	cursor: default !important;
+}
+#stats #fps {
+	background: transparent !important;
+	text-align: right !important;
+}
+#stats #fps #fpsText {
+	color: #fff !important;
+}
+#stats #fps #fpsGraph {
+	display: none;
+}
+#sysinfo {
+	font-family: Helvetica, Arial, sans-serif;
+	font-size: 10px;
+	font-weight: bold;
+	line-height: 12px;
+	text-align: right;
+	color: #fff;
+	opacity: 0.9;
+	position: absolute;
+	top: 14px;
+	right: 6px;
+	cursor: default;
+}
+
+</style>
+<!--script src="https://code.jquery.com/jquery-3.0.0-beta1.min.js"></script-->
+<script src='js/jquery.js'></script>
+<script src="js/three.min.js"></script>
+<script src="js/DeviceOrientationControls.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/stats.min.js"></script>
+<script src="js/system.min.js"></script>
+<script>
+$(function() {
+	var cam_mode = 1;
+	var toggle = true;
+	var stats;
+	
+	var renderer, scene, mesh, material, texture;
+	var sensor_cam, orbit_cam, globe_cam;
+	var sensor_ctl, orbit_ctl, globe_ctl;
+	
+	var loader = new THREE.TextureLoader();
+	loader.crossOrigin = '';
+	THREE.ImageUtils.crossOrigin = '';
+	loader.load(//"http://dz.plala.jp:49152/?action=stream",
+		"http://192.168.25.1:8090/?action=stream",
+		//"sample.jpg",
+		function (texture) {
+			texture.minFilter = THREE.LinearFilter;
+			material = new THREE.MeshBasicMaterial({map: texture});
+			init();
+		}
+	);
+	
+	//初期化
+	function init() {
+		windowWidth = $(window).innerWidth(), windowHeight = $(window).innerHeight();
+		
+		renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+		renderer.setPixelRatio(window.devicePixelRatio);
+		renderer.setSize(windowWidth, windowHeight);
+		$("#container").append(renderer.domElement);
+		
+		sensor_cam = new THREE.PerspectiveCamera(70, windowWidth / windowHeight, 1, 1000);
+		sensor_ctl = new THREE.DeviceOrientationControls(sensor_cam);
+		
+		orbit_cam = new THREE.PerspectiveCamera(70, windowWidth / windowHeight, 1, 1000);
+		orbit_cam.position.set(0, 0, 1);
+		orbit_ctl = new THREE.OrbitControls(orbit_cam, renderer.domElement);
+		orbit_ctl.userPan = false;
+		orbit_ctl.userZoom = false;
+		orbit_ctl.autoRotate = false;
+		
+		globe_cam = new THREE.PerspectiveCamera(70, windowWidth / windowHeight, 1, 2000);
+		globe_cam.position.set(0, 0, 1000);
+		globe_ctl = new THREE.OrbitControls(globe_cam, renderer.domElement);
+		globe_ctl.userPan = false;
+		globe_ctl.userZoom = false;
+		globe_ctl.autoRotate = false;
+		globe_ctl.minDistance = 1000;
+		globe_ctl.maxDistance = 1000;
+		
+		scene = new THREE.Scene();
+		
+		mesh = new THREE.Mesh(new THREE.SphereGeometry(500, 60, 40), material);
+		mesh.scale.x = -1;
+		
+		scene.add(mesh);
+		
+		stats = new Stats();
+		$("#container").append(stats.domElement);
+		
+		$("#sysinfo").html([
+			'Resolution: 1280x720',
+			'Browser: ' + System.browser,
+			'OS: ' + System.os,
+			'Canvas: ' + System.support.canvas,
+			'Local storage: ' + System.support.localStorage,
+			'File API: ' + System.support.file,
+			'FileSystem API: ' + System.support.fileSystem,
+			'RequestAnimationFrame: ' + System.support.requestAnimationFrame,
+			'Session storage: ' + System.support.sessionStorage,
+			'SVG: ' + System.support.svg,
+			'WebGL: ' + System.support.webgl,
+			'Worker: ' + System.support.worker
+		].join( '<br />' ));
+		
+		animate();
+	};
+	
+	//レンダリング
+	function animate() {
+		requestAnimationFrame(animate);
+		mesh.material.map.needsUpdate = true;
+		switch (cam_mode){
+			case 1:
+				sensor_ctl.update();
+				renderer.render(scene, sensor_cam);
+				break;
+			case 2:
+				orbit_ctl.update();
+				renderer.render(scene, orbit_cam);
+				break;
+			case 3:
+				globe_ctl.update();
+				renderer.render(scene, globe_cam);
+				break;
+		}
+		stats.update();
+	};
+	
+	//リサイズ
+	$(window).resize(function() {
+		windowWidth = $(window).innerWidth(),windowHeight = $(window).innerHeight();
+		
+		sensor_cam.aspect = windowWidth / windowHeight;
+		sensor_cam.updateProjectionMatrix();
+		
+		orbit_cam.aspect = windowWidth / windowHeight;
+		orbit_cam.updateProjectionMatrix();
+		
+		globe_cam.aspect = windowWidth / windowHeight;
+		globe_cam.updateProjectionMatrix();
+		
+		renderer.setSize(windowWidth, windowHeight);
+	});
+	
+	//モードボタン
+	$("#mode").click(function() {
+		switch (cam_mode) {
+			case 1:
+				$(this).attr("src",$(this).attr("src").replace("_sensor", "_orbit"));
+				cam_mode = 2;
+				break;
+			case 2:
+				$(this).attr("src",$(this).attr("src").replace("_orbit", "_globe"));
+				cam_mode = 3;
+				break;
+			case 3:
+				$(this).attr("src",$(this).attr("src").replace("_globe", "_sensor"));
+				cam_mode = 1;
+				break;
+		}
+	});
+	
+	//ハテナボタン
+	$("#question").click(function() {
+		if (toggle) {
+			$("#question").css("cursor", "default");
+			$("#alert").css("z-index", "1");
+			$("#alert").css("opacity", "1.0");
+			$("#alert").css("cursor", "pointer");
+			toggle = false;
+		}
+	});
+	$("#alert").click(function() {
+		if (!toggle) {
+			$("#alert").css("z-index", "-1");
+			$("#alert").css("opacity", "0");
+			$("#alert").css("cursor", "default");
+			$("#question").css("cursor", "pointer");
+			toggle = true;
+		}
+	});
+	
+	//マウスアイコン
+	$("#container").mousedown(function() {
+		$("#container").addClass("grabbing");
+		$("#container").removeClass("grab");
+	});
+	$("#container").mouseup(function() {
+		$("#container").addClass("grab");
+		$("#container").removeClass("grabbing");
+	});
+});
+</script>
+</head>
+<body>
+<div id="container" class="grab">
+	<img id="support" src="images/support.png">
+	<img id="alert" src="images/alert.png">
+	<img id="mode" src="images/mode_sensor.png">
+	<img id="question" src="images/question.png">
+	<div id="sysinfo"></div>
+</div>
+</body>
+</html>

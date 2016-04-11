@@ -1,0 +1,45 @@
+
+html, body
+{
+	background: #888;
+
+	margin: 0px;
+	padding: 0px;
+
+	font-family: "DIN";
+}
+
+#logo
+{
+	position: absolute;
+	top: 3px;
+	right: 3px;
+}
+
+#controls
+{
+	position: absolute;
+	top: 3px;
+	left: 3px;
+}
+
+#fps
+{
+	color: white;
+	background: rgba(0,0,0,.5);
+	padding: 3px;
+	Xmargin: 3px;
+}
+
+#buffer
+{
+	width: 100%;
+}
+
+input[type=button]
+{
+	padding: 20px;
+	width: 50px;
+}
+
+

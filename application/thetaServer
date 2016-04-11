@@ -1,0 +1,114 @@
+#!/bin/bash
+#
+
+### BEGIN INIT INFO
+# Provides:          thetaServer
+# Required-Start:    
+# Required-Stop:     
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       This service starts the theta server daemon
+### END INIT INFO
+
+# Source function library.
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+
+daemonRoot="/var/www/html/application/"
+daemonApp="thetaServer.run"
+daemonAppPath="$daemonRoot/$daemonApp"
+
+daemonUser="pi"
+
+logDir="/var/log/theta"
+daemonLogStdout="$logDir/theta.stdout"
+daemonLogStderr="$logDir/theta.stderr"
+
+start()
+{
+        if [ ! -d $logDir ];
+        then
+                mkdir $logDir
+                chmod 777 $logDir
+        fi
+
+        echo -ne "Starting Theta Server:"
+
+    	pid=`pidof -x $daemonAppPath`
+
+        if [[ ! $pid ]]; then
+	    #( start-stop-daemon --start --user=$daemonUser --exec $daemonAppPath >> $daemonLogStdout & ) && success || failure
+	    start-stop-daemon --start --chuid $daemonUser --exec $daemonAppPath &
+	    RETVAL=$?
+        else
+	    echo -ne " (theta server is already running)"
+        fi
+        echo ""
+        return $RETVAL
+}
+
+stop()
+{
+        echo -n "Shutting down Theta Server:"
+	pid=`pidof -x $daemonAppPath`
+
+        if [[ $pid ]];
+        then
+	    pgid=`ps --no-headers -p $pid -o "%r" | perl -pe "s/\s//g"`
+	    [ "$pgid" != "" ] && kill -9 -$pgid 
+
+	    RETVAL=$?
+	    #[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/thetaServer
+        else
+	    echo -n " (server is not running)"
+	    RETVAL=1
+        fi
+
+        echo ""
+        return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+        start)
+                start
+                ;;
+        stop)
+                stop
+                ;;
+        restart|reload)
+                stop
+                start
+                ;;
+        condrestart)
+	pid=`pidof -x $daemonAppPath`
+	if [[ $pid ]]
+	    then
+	    echo "Theta Server is running..."
+	    exit 0
+	else
+	    start
+	    exit 0
+	fi
+                ;;
+        status)
+	echo "checking status of server..."
+	pid=`pidof -x $daemonAppPath`
+	if [[ $pid ]]
+	    then
+	    echo "Theta Server is running.."
+	    exit 0
+	else
+	    echo "Theta Server is stopped.."
+	    exit 0
+	fi
+                ;;
+        *)
+                echo $"Usage: $0 {start|stop|restart|condrestart}"
+                exit 1
+esac
+
+exit 0
+:se
+
+
