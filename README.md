@@ -35,6 +35,10 @@ You will want to access the pi directly for coding, compiling, scripting, etc...
 
 You will want the Pi to connect to the internet at times so that libraries can be downloaded... But you will also want to test the system in a production state, which assumes no internet at all.  After going through many configurations, the simplest way for me turned out to be using my phone as a tether device with bluetooth on my laptop... The non-obvious thing was that I had to go into the OSX network settings on my laptop and set bluetooth internet above wifi... things got much easier after that!
 
+## Please note:
+
+The OrbitControls.js file was tweaked to make this work...  It's not the standard one that is distributed with three.js.
+
 ## Install
 
 0. place this repo at /var/www/html
