@@ -342,7 +342,7 @@ $(function() {
 			reconnecting = false;
 
 			if (mesh && mesh.material)
-			//if (counter++ % 2)
+			if (counter++ % 2)			//we only get 15fps out of the camera over usb
 				mesh.material.map.needsUpdate = true;
 
 			//console.log(node.rotation);

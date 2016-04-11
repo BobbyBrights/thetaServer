@@ -100,6 +100,7 @@ I give props to:
 * https://hackaday.io/project/5077-metaverse-lab/log/17307-avalon-pt-2
 * http://qiita.com/syumai/items/ccf4a0116c3986e90c74
 * https://github.com/izmhr/ThetaSphericalMapping/blob/master/theta-view.js
+* https://github.com/richtr/threeVR
 
 there are many more pages on the web that were helpful... will include them as I go.
 
