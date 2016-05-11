@@ -26,6 +26,7 @@ class proxy : public QObject
 		QNetworkAccessManager	_manager;
 		QNetworkReply		*_reply;
 
+		int			_outstanding;
 		int			_count;
 		int			_fps;
 		uint			_time;

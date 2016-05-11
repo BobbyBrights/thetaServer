@@ -19,7 +19,10 @@
 	header("Expires: Mon, 3 Jan 2000 12:34:56 GMT", true);
 	header("Content-Type: multipart/x-mixed-replace;boundary=boundarydonotcross", true);
 
-	passthru("$base/proxy.qt/proxy client");
+	//while (1)
+	{	passthru("$base/proxy.qt/proxy client");
+	//	flush();
+	}
 
 	die();
 

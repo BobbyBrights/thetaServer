@@ -17,6 +17,7 @@ proxy::proxy(QString address)
 , _address(address)
 , _manager(this)
 , _reply(0)
+, _outstanding(0)
 , _count(0)
 , _fps(0)
 , _time(0)
@@ -143,7 +144,11 @@ void proxy::replyReady()
 
 		_count++;
 
-		QtConcurrent::run( this, &proxy::recompressFrame, ba, _count );
+		if (_outstanding < 5)
+		{
+			_outstanding++;
+			QtConcurrent::run( this, &proxy::recompressFrame, ba, _count );
+		}
 
 	/*	
 		setImage( image );
@@ -195,13 +200,14 @@ void proxy::frameRecompressed(QByteArray image, int fnum)
 	_counter_shm.unlock();
 
 	_fps++;
+	_outstanding--;
 
 	uint t = QDateTime::currentDateTimeUtc().toTime_t();
 
 	if (t > _time)
 	{
 		_time = t;
-		printf("FPS: %d %d\n",_fps,_count);
+		printf("FPS: %d %d %d\n",_fps,_count,_outstanding);
 		_fps = 0;
 	}
 }
@@ -327,7 +333,9 @@ void client::stream()
 			printf( BOUNDARY );
 			//printf("Content-type: image/jpg\nContent-length:%d\n 
 			fwrite( image.data(), image.size(), 1, stdout );
+			fflush( stdout );
 			//std::cout << image;
+			//exit(0);
 		}
 		//else
 			//usleep( 1000/15 );
